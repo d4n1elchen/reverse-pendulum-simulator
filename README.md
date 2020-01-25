@@ -12,4 +12,4 @@ Used library
 
 Mechanical model of reverse pendulum
 ---
-![]()
+![](https://github.com/d4n1elchen/reverse-pendulum-simulator/raw/master/Graphics/model.png)

@@ -1,6 +1,6 @@
 // GL functions written by Daniel
 
-#include "gl\glee.h"
+#include <gl\glee.h>
 #include <gl\shared\gltools.h>
 #include <gl\shared\glframe.h>
 #include <deque>

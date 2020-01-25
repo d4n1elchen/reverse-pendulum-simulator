@@ -1,7 +1,8 @@
 #include "stdafx.h"
 #include "InvertPendulum.h"
-#include <math.h>
 #include "rkf45.hpp"
+
+#include <cmath>
 
 // public variables
 float displacement,

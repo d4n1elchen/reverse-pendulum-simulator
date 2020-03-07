@@ -149,18 +149,18 @@ int main(int argc, char* argv[])
 	if (cartTri.nTriangles && pendTri.nTriangles)
 	{
 		cout << "成大機械系 計算機圖學 Final Project by E14026046 機三丙 陳建鳴\n\n"
-			<< "作業內容:\n"
-			<< "  倒單擺PID控制模擬！\n\n"
-			<< "按鍵說明:\n"
-			<< "  滑鼠左鍵移動視角。\n"
-			<< "  ↑↓←→: 移動視角。\n"
-			<< "  ＷＡＳＤ: 移動玩家位置。\n\n"
-			<< "選單說明:\n"
-			<< "  Start: 開始模擬。\n"
-			<< "  Restart: 重置運動參數。\n"
-			<< "  滑條: 設定PID控制之K值。\n\n"
-			<< "右鍵選單說明:\n"
-			<< "  Set system parameters: 設定系統參數。\n\n";
+			 << "作業內容:\n"
+			 << "  倒單擺PID控制模擬！\n\n"
+			 << "按鍵說明:\n"
+			 << "  滑鼠左鍵移動視角。\n"
+			 << "  ↑↓←→: 移動視角。\n"
+			 << "  ＷＡＳＤ: 移動玩家位置。\n\n"
+			 << "選單說明:\n"
+			 << "  Start: 開始模擬。\n"
+			 << "  Restart: 重置運動參數。\n"
+			 << "  滑條: 設定PID控制之K值。\n\n"
+			 << "右鍵選單說明:\n"
+			 << "  Set system parameters: 設定系統參數。\n\n";
 
 		glutInit(&argc, argv);
 		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);

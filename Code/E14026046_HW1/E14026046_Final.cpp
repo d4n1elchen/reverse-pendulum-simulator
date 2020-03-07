@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 	pendTri = loadStl("pendulum.stl");
 	cout << "//////////////////////////////////\n\n";
 
-	if (cartTri.nTriangles)
+	if (cartTri.nTriangles && pendTri.nTriangles)
 	{
 		cout << "成大機械系 計算機圖學 Final Project by E14026046 機三丙 陳建鳴\n\n"
 			<< "作業內容:\n"
@@ -290,7 +290,6 @@ void RenderScene(void)
 		/////////
 	}
 	glPopMatrix();
-	
 		
 	// Flush drawing commands
 	glutSwapBuffers();
@@ -304,7 +303,6 @@ void SetupRC()
 	GLbyte *pBytes;
 	GLint iWidth, iHeight, iComponents;
 	GLenum eFormat;
-
 
 	glEnable(GL_DEPTH_TEST);	// Hidden surface removal
 	glFrontFace(GL_CCW);		// Counter clock-wise polygons face out

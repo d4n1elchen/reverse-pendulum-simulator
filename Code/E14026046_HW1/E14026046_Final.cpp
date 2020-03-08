@@ -520,26 +520,37 @@ void ProcessSelection(int xPos, int yPos)
 	// Get the viewport
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
+	// Change render mode
+	glRenderMode(GL_SELECT);
+
+	// Initialize the names stack
+	glInitNames();
+	glPushName(-1);
+
 	// Switch to projection and save the matrix
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
+	{
+		// change proj mode
+		glLoadIdentity();
+		gluPickMatrix(xPos, viewport[3] - yPos, 2, 2, viewport); // Select a small area to pick objects
+		glMultMatrixf(oth);
 
-	// Change render mode
-	glRenderMode(GL_SELECT);
-	glLoadIdentity();
-	gluPickMatrix(xPos, viewport[3] - yPos, 20, 20, viewport); // Select a small area to pick objects
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
 
-	glMultMatrixf(oth);
+		// Draw the scene
+		m.renderMenu(viewW, viewH);
 
-	// Draw the scene
-	float w = viewW / 2.f - 50.f;
-	float h = viewH / 2.f - 20.f;
-	m.renderMenu(w, h);
+	}
+	// Restore the projection matrix
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
 
 	// Collect the hits
-	GLint hits = glRenderMode(GL_RENDER);
-
+	GLuint hits = glRenderMode(GL_RENDER);
 	GLuint nErr = glGetError();
+
 	// If a single hit occurred, display the info.
 	if (nErr == 0 && hits > 0) {
 		int selected = m.processBtn(selectBuff);
@@ -561,10 +572,6 @@ void ProcessSelection(int xPos, int yPos)
 	else {
 		menuClicked = false;
 	}
-
-	// Restore the projection matrix
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
 
 	// Go back to modelview for normal rendering
 	glMatrixMode(GL_MODELVIEW);

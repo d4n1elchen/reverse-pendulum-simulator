@@ -60,8 +60,8 @@ void Menu::genSlider(float x, float y, float value, char* kst, int name)
 	int kstl = strlen(kst); // Display name
 	char kvs[10]; // Display value
 
-	float bw = 15.f;
-	float bh = 8.f;
+	float bw = 23.f;
+	float bh = 12.f;
 	float sw = 2.5f;
 	float sh = 80.f;
 
@@ -74,18 +74,19 @@ void Menu::genSlider(float x, float y, float value, char* kst, int name)
 
 	// text
 	glLoadName(-1);
-	glColor3f(0.6f, 0.6f, 0.6f); // Color
-	Sprint(x - ((float)kstl / 2.0f * width_per_char), y - 100.0f, kst);
-	Sprint(x - ((float)kvsl / 2.0f * width_per_char), by + 10.0f, kvs);
+	glColor3f(0.0f, 0.0f, 0.0f); // Color
+	Sprint(x - ((float)kstl / 2.0f * width_per_char), y - 110.0f, kst);
+	glColor3f(1.0f, 1.0f, 1.0f); // Color
+	Sprint(x - ((float)kvsl / 2.0f * width_per_char), by - width_per_char, kvs);
 
 	// bar
 	glLoadName(name);
-	glColor3f(0.8f, 0.5f, 0.8f); // Color
+	glColor3f(0.5f, 0.5f, 0.5f); // Color
 	glRectf(x - bw, by - bh, x + bw, by + bh);
 
 	// slider
 	glLoadName(-1);
-	glColor3f(0.8f, 0.8f, 0.8f); // Color
+	glColor3f(0.0f, 0.0f, 0.0f); // Color
 	glRectf(x - sw, y - sh, x + sw, y + sh);
 }
 
@@ -110,16 +111,10 @@ void Menu::genInfo(float x, float y) {
 // render menu
 void Menu::renderMenu(float viewW, float viewH)
 {
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
 	float btnX = - viewW / 2.f + 60.f;
 	float btnY = viewH / 2.f - 40.f;
 
-	// Initialize the names stack
-	glInitNames();
-	glPushName(START);
+	glLoadName(START);
 	genBtn(btnX, btnY, "Start");
 
 	glLoadName(RESTART);
@@ -132,11 +127,11 @@ void Menu::renderMenu(float viewW, float viewH)
 	genInfo(infoX, infoY);
 
 	float sldX = viewW / 2.f - 50.f;
-	float sldY = viewH / 2.f - 40.f;
+	float sldY = viewH / 2.f - 100.f;
 
-	genSlider(sldX -   0, sldY - 60, kp, "Kp", SLIDER_P);
-	genSlider(sldX -  50, sldY - 60, ki, "Ki", SLIDER_I);
-	genSlider(sldX - 100, sldY - 60, kd, "Kd", SLIDER_D);
+	genSlider(sldX -   0, sldY, kp, "Kp", SLIDER_P);
+	genSlider(sldX -  50, sldY, ki, "Ki", SLIDER_I);
+	genSlider(sldX - 100, sldY, kd, "Kd", SLIDER_D);
 }
 
 ///////////////////////////////////////////////////////////

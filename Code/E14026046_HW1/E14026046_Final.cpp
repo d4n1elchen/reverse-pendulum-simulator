@@ -12,8 +12,7 @@ using std::cin;
 using std::endl;
 using std::deque;
 
-// Declare functions
-// glut callback functions
+//// glut callback functions
 void TimerFunction(int value);
 void ProcessMenu(int value);
 void RenderScene(void);
@@ -25,24 +24,29 @@ void ProcessSelection(int xPos, int yPos);
 void MouseMotion(int x, int y);
 void MouseKeys(int button, int state, int x, int y);
 
-// Costume render function
+// Time function
+int T = 0; // Total execution time
+int dt = 16; // Time increasement
+
+//// Costume render function
 void playerSence(GLfloat xRot, GLfloat yRot, GLfloat xTrans, GLfloat yTrans, GLfloat zTrans);
-void DrawGround(void);
+void drawGround(void);
 void drawCross(void);
+void drawBoard(float cx, float cy, float h, float w, char* xlabel, char* ylabel, float xmax, float ymax, deque<float> value);
 
-void drawThetaBoard(float cx, float cy, float h, float w);
-void drawDispBoard(float cx, float cy, float h, float w);
-
+//// Rendering parameters
 // Selection flags
-bool sliderClicked = false;
+bool menuClicked = false;
 
 // Click and Drag
 int startX = 0;
 int startY = 0;
+
+// Viewport size
 int viewW = 0;
 int viewH = 0;
 
-// Rotation amounts
+// Rotation control
 static GLfloat xRot = 0.0f;
 static GLfloat yRot = 0.0f;
 
@@ -53,7 +57,24 @@ static GLfloat yTrans = 0.0f;
 // Ortho range
 GLfloat nRange = 300.0f;
 
-// Stl reading
+// proj mode
+GLfloat oth[16];
+GLfloat pers[16];
+
+// Camera's position (x, y, z)
+GLfloat playerPos[3] = { 0 };
+
+// Light values and coordinates
+GLfloat  ambientLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+GLfloat  diffuseLight[] = { 0.7f, 0.7f, 0.7f, 1.0f };
+GLfloat  specular[] = { 0.7f, 0.7f, 0.7f, 1.0f };
+GLfloat  pos[] = { -50.0f, 50.0f, -5.0f, 1.0f };
+GLfloat  specref[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+
+//// User interface
+Menu m;
+
+//// Stl reading
 // Triangles
 MyTriangle cartTri;
 MyTriangle pendTri;
@@ -62,43 +83,17 @@ MyTriangle pendTri;
 unsigned int cartVBO[2];
 unsigned int pendVBO[2];
 
-// Time function
-int t = 16;
-int T = 0;
-
-// proj mode
-GLfloat oth[16];
-GLfloat pers[16];
-
-// Menu
-Menu m;
-
-// invert pendulum
-
-// zooms
-GLfloat playerPos[3] = {0};
-
-// PID
-//Define Variables we'll be connecting to
-double Setpoint = 0, Input, Output;
-// Control loop gains
-float k[3] = { 50.0f, 5.0f, 0.1f };
-//Specify the links and initial tuning parameters
-PID myPID(&Input, &Output, &Setpoint, k[0], k[1], k[2], DIRECT, T);
-
 // texture
+#define NUM_TEXTURES    2
 #define GROUND_TEXTURE  0
 #define CART_TEXTURE    1
-#define NUM_TEXTURES    2
 GLuint  textureObjects[NUM_TEXTURES];
 const char *szTextureFiles[] = { "grass.tga", "cart.tga" };
 
-// Light values and coordinates
-GLfloat  ambientLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-GLfloat  diffuseLight[] = { 0.7f, 0.7f, 0.7f, 1.0f };
-GLfloat  specular[] = { 0.7f, 0.7f, 0.7f, 1.0f };
-GLfloat  pos[] = { -50.0f, 50.0f, -5.0f, 1.0f };
-GLfloat  specref[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+//// PID
+double Setpoint = 0, Input, Output; // Control command, Feedback, and Output
+float k[3] = { 50.0f, 5.0f, 0.1f }; // Control loop gains
+PID myPID(&Input, &Output, &Setpoint, k[0], k[1], k[2], DIRECT, T); // Specify the links and initial tuning parameters
 
 // Response chart
 #define TOTAL_DATA_NUM 100
@@ -204,21 +199,9 @@ void RenderScene(void)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	float w = viewW / 2.f - 50.f;
-	float h = viewH / 2.f - 20.f;
-	m.renderMenu(w, h);
+	m.renderMenu(viewW, viewH);
 	drawCross();
 
-	char buf[50];
-	glColor3f(0.2f, 0.2f, 0.2f);
-	sprintf_s(buf, sizeof(buf), "Mass of Pendulumn = %.1f (kg)", massPendulum);
-	Sprint((int)-viewW / 2.f, (int)viewH / 2.f - 80.f, buf);
-	sprintf_s(buf, sizeof(buf), "Mass of Cart = %.1f (kg)", massCart);
-	Sprint((int)-viewW / 2.f, (int)viewH / 2.f - 100.f, buf);
-	sprintf_s(buf, sizeof(buf), "Length of Pendulumn = %.1f (m)", lengthArm);
-	Sprint((int)-viewW / 2.f, (int)viewH / 2.f - 120.f, buf);
-	sprintf_s(buf, sizeof(buf), "Kp = %.1f, Ki = %.1f, Kd = %.1f", k[0], k[1], k[2]);
-	Sprint((int)-viewW / 2.f, (int)viewH / 2.f - 140.f, buf);
 
 	// change proj mode
 	glMatrixMode(GL_PROJECTION);
@@ -238,13 +221,13 @@ void RenderScene(void)
 
 	// Draw the ground
 	glColor3ub(0, 104, 10); // Color	
-	DrawGround();
+	drawGround();
 	
 	glPushMatrix();
 	{
 		glTranslatef(0.f, 0.f, -60.f);
-		drawThetaBoard(-17.5f, 15.f, 15.f, 30.f);
-		drawDispBoard(17.5f, 15.f, 15.f, 30.f);
+		drawBoard(-17.5f, 15.f, 15.f, 30.f, "Time", "Theta", TOTAL_DATA_NUM, angMax, thetaDatas);
+		drawBoard(17.5f, 15.f, 15.f, 30.f, "Time", "Displacement", TOTAL_DATA_NUM, posMax, dispDatas);
 	}
 	glPopMatrix();
 
@@ -290,7 +273,7 @@ void RenderScene(void)
 void SetupRC()
 {
 	// Variable for texture setting
-	GLbyte *pBytes;
+	//GLbyte *pBytes;
 	//GLint iWidth, iHeight, iComponents;
 	//GLenum eFormat;
 
@@ -380,7 +363,7 @@ void ChangeSize(int w, int h)
 	gluPerspective(60.0f, aspect, 1.0f, 500.f);
 	glGetFloatv(GL_PROJECTION_MATRIX, pers); // get matris of pers
 	
-	///// Remain for copy /////
+	//////// For copy ////////
 	// change proj mode
 	//glMatrixMode(GL_PROJECTION);
 	//glLoadIdentity();
@@ -397,11 +380,11 @@ void ChangeSize(int w, int h)
 // Rotating animate
 void TimerFunction(int value)
 {
-	T += t;
+	T += dt;
 	Input = theta;
 	myPID.Compute(T);
 	u = Output;
-	RKF45();
+	solve();
 
 	if (thetaDatas.size() == TOTAL_DATA_NUM)
 	{
@@ -420,8 +403,8 @@ void TimerFunction(int value)
 	// Redraw the scene with new coordinates
 	glutPostRedisplay();
 
-	if (m.isStarted() && abs(theta) < angMax && abs(displacement*10) < posMax)	// If sFlag set and angular speed > 25, repeat this funciton.
-		glutTimerFunc(t, TimerFunction, NULL);
+	if (m.isStarted() && abs(theta) < angMax && abs(displacement*10) < posMax)	// If started and angular speed > 25, repeat this funciton.
+		glutTimerFunc(dt, TimerFunction, NULL);
 	else
 	{
 		m.stop();
@@ -558,19 +541,25 @@ void ProcessSelection(int xPos, int yPos)
 
 	GLuint nErr = glGetError();
 	// If a single hit occurred, display the info.
-	sliderClicked = 0;
 	if (nErr == 0 && hits > 0) {
 		int selected = m.processBtn(selectBuff);
 		switch (selected) {
 		case START:
-			glutTimerFunc(t, TimerFunction, NULL);
+			menuClicked = true;
+			glutTimerFunc(dt, TimerFunction, NULL);
 			break;
+		case RESTART:
 		case SLIDER_P:
 		case SLIDER_I:
 		case SLIDER_D:
-			sliderClicked = 1;
+			menuClicked = true;
 			break;
+		default:
+			menuClicked = false;
 		}
+	}
+	else {
+		menuClicked = false;
 	}
 
 	// Restore the projection matrix
@@ -596,10 +585,10 @@ void MouseMotion(int x, int y)
 		py = 2 * nRange;
 	}
 		
-	float dx = (x - startX)  ;
-	float dy = (startY - y)  ;
+	float dx = (x - startX);
+	float dy = (startY - y);
 	
-	if (!sliderClicked)
+	if (!menuClicked)
 	{
 		if (dx < 0)
 			yRot -= 1.0f;
@@ -648,14 +637,14 @@ void MouseKeys(int button, int state, int x, int y)
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP)
 	{
-		if (sliderClicked)
+		if (menuClicked)
 		{
 			k[0] = m.getKp();
 			k[1] = m.getKi();
 			k[2] = m.getKd();
 			myPID.SetTunings(k[0], k[1], k[2]);
 		}
-		sliderClicked = 0;
+		menuClicked = false;
 	}
 }
 
@@ -665,8 +654,8 @@ void playerSence(GLfloat xRot, GLfloat yRot, GLfloat xTrans, GLfloat yTrans, GLf
 	glTranslatef(xTrans, yTrans, zTrans);
 }
 
-// DrawGround
-void DrawGround(void)
+// drawGround
+void drawGround(void)
 {
 	GLfloat fExtent = 100.0f;
 	GLfloat fStep = 1.0f;
@@ -716,7 +705,7 @@ void drawCross()
 	glPopMatrix();
 }
 
-void drawThetaBoard(float cx, float cy, float h, float w)
+void drawBoard(float cx, float cy, float h, float w, char* xlabel, char* ylabel, float xmax, float ymax, deque<float> value)
 {
 	float bh = h;
 	float bw = w;
@@ -731,27 +720,7 @@ void drawThetaBoard(float cx, float cy, float h, float w)
 		drawCube(cx - bw / 2.f - d / 2.f, cy, d, bh, d, false);
 		drawCube(cx + bw / 2.f + d / 2.f, cy, d, bh, d, false);
 		glTranslatef(0.f, 0.f, d / 2.f + 0.1f);
-		plot(cx - bw / 2.f + 1.f, cy - bh / 2.f + 1.f, bw - 2.f, bh - 2.f, "Time", "Theta", TOTAL_DATA_NUM, angMax, thetaDatas);
-	}
-	glPopMatrix();
-}
-
-void drawDispBoard(float cx, float cy, float h, float w)
-{
-	float bh = h;
-	float bw = w;
-	float d = 1.f;
-	glPushMatrix();
-	{
-		glColor3ub(255, 255, 255);
-		drawCube(cx, cy, bw, bh, d, false);
-		glColor3ub(0, 0, 0);
-		drawCube(cx, cy + bh / 2.f + d / 2.f, bw + d*2.f, d, d, false);
-		drawCube(cx, cy - bh / 2.f - d / 2.f, bw + d*2.f, d, d, false);
-		drawCube(cx - bw / 2.f - d / 2.f, cy, d, bh, d, false);
-		drawCube(cx + bw / 2.f + d / 2.f, cy, d, bh, d, false);
-		glTranslatef(0.f, 0.f, d / 2.f + 0.1f);
-		plot(cx - bw / 2.f + 1.f, cy - bh / 2.f + 1.f, bw - 2.f, bh - 2.f, "Time", "Displacement", TOTAL_DATA_NUM, posMax, dispDatas);
+		plot(cx - bw / 2.f + 1.f, cy - bh / 2.f + 1.f, bw - 2.f, bh - 2.f, xlabel, ylabel, xmax, ymax, value);
 	}
 	glPopMatrix();
 }

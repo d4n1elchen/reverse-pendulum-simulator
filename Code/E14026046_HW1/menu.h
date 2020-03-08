@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Windows.h>
-
 // Define btn names
 #define START		0
 #define RESTART		1
@@ -16,7 +14,7 @@ public:
 	Menu(float _kp, float _ki, float _kd);
 	~Menu();
 
-	void renderMenu(float w, float h);
+	void renderMenu(float viewW, float viewH);
 	int processBtn(GLuint* buf);
 	void updateSliders(float dy);
 	bool isStarted();
@@ -28,6 +26,7 @@ public:
 private:
 	void genBtn(float x, float y, char *st);
 	void genSlider(float x, float y, float value, char* kst, int name);
+	void genInfo(float x, float y);
 
 	// Sliding bar
 	int sliding;

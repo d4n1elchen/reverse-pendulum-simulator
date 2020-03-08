@@ -1,7 +1,6 @@
 
 void initializeMotionParams();
-void setSystemParams(float mass_pend, float mass_cart, float length_arm);
-void RKF45();
+void solve();
 
 //  State Variables
 extern float displacement,

@@ -108,7 +108,7 @@ float constrain(float n, float min, float max) {
 		return n;
 }
 
-void RKF45() {
+void solve() {
 	float abserr = sqrt(r4_epsilon());
 	int neqn = systemOrder;
 	float relerr = sqrt(r4_epsilon());

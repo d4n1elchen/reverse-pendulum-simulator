@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "myGL.h"
 #include "menu.h"
+#include "InvertPendulum.h"
 
 using namespace std;
 
@@ -38,6 +39,9 @@ float Menu::getKp() { return kp; }
 float Menu::getKi() { return ki; }
 float Menu::getKd() { return kd; }
 
+// Generate slide bar
+float const width_per_char = 8.0f;
+
 // Generate Button
 void Menu::genBtn(float x, float y, char *st)
 {
@@ -45,21 +49,19 @@ void Menu::genBtn(float x, float y, char *st)
 	float w = 50;
 	float h = 20;
 	glColor3f(0.5f, 0.5f, 0.5f); // Color
-	Sprint(x - ((float)l / 2.0f*8.0f), y - 8.0f, st);
+	Sprint(x - ((float)l / 2.0f * width_per_char), y - width_per_char, st);
 	glColor3f(1.0f, 1.0f, 1.0f); // Color
 	glRectf(x - w, y - h, x + w, y + h);
 	glLoadIdentity();
 }
 
-// Generate slide bar
-float const width_per_char = 8.0f;
 void Menu::genSlider(float x, float y, float value, char* kst, int name)
 {
 	int kstl = strlen(kst); // Display name
 	char kvs[10]; // Display value
 
-	float bw = 10.f;
-	float bh = 5.f;
+	float bw = 15.f;
+	float bh = 8.f;
 	float sw = 2.5f;
 	float sh = 80.f;
 
@@ -87,23 +89,54 @@ void Menu::genSlider(float x, float y, float value, char* kst, int name)
 	glRectf(x - sw, y - sh, x + sw, y + sh);
 }
 
+float const line_height = 20.f;
+void Menu::genInfo(float x, float y) {
+	char buf[50];
+	glColor3f(0.2f, 0.2f, 0.2f);
+
+	sprintf_s(buf, sizeof(buf), "Mass of Pendulumn = %.1f (kg)", massPendulum);
+	Sprint(x, y, buf);
+
+	sprintf_s(buf, sizeof(buf), "Mass of Cart = %.1f (kg)", massCart);
+	Sprint(x, y - line_height, buf);
+
+	sprintf_s(buf, sizeof(buf), "Length of Pendulumn = %.1f (m)", lengthArm);
+	Sprint(x, y - line_height * 2, buf);
+
+	sprintf_s(buf, sizeof(buf), "Kp = %.1f, Ki = %.1f, Kd = %.1f", kp, ki, kd);
+	Sprint(x, y - line_height * 3, buf);
+}
+
 // render menu
-void Menu::renderMenu(float w, float h)
+void Menu::renderMenu(float viewW, float viewH)
 {
+
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
+	float btnX = - viewW / 2.f + 60.f;
+	float btnY = viewH / 2.f - 40.f;
 
 	// Initialize the names stack
 	glInitNames();
 	glPushName(START);
-	genBtn(-w, h, "Start");
+	genBtn(btnX, btnY, "Start");
 
 	glLoadName(RESTART);
-	genBtn(-w + 120, h, "Restart");
+	genBtn(btnX + 120, btnY, "Restart");
 
-	genSlider(w -   0, h - 60, kp, "Kp", SLIDER_P);
-	genSlider(w -  50, h - 60, ki, "Ki", SLIDER_I);
-	genSlider(w - 100, h - 60, kd, "Kd", SLIDER_D);
+	float infoX = btnX - 40.f;
+	float infoY = btnY - 50.f;
+
+	glLoadName(-1);
+	genInfo(infoX, infoY);
+
+	float sldX = viewW / 2.f - 50.f;
+	float sldY = viewH / 2.f - 40.f;
+
+	genSlider(sldX -   0, sldY - 60, kp, "Kp", SLIDER_P);
+	genSlider(sldX -  50, sldY - 60, ki, "Ki", SLIDER_I);
+	genSlider(sldX - 100, sldY - 60, kd, "Kd", SLIDER_D);
 }
 
 ///////////////////////////////////////////////////////////

@@ -5,9 +5,7 @@
 #include "stdafx.h"
 #include "myGL.h"
 #include "InvertPendulum.h"
-#include "PID_v1.h"
-#include <iostream>
-#include <deque>
+#include "menu.h"
 
 using std::cout;
 using std::cin;
@@ -26,18 +24,17 @@ void ChangeSize(int w, int h);
 void ProcessSelection(int xPos, int yPos);
 void MouseMotion(int x, int y);
 void MouseKeys(int button, int state, int x, int y);
-void ProcessBtn(GLuint id);
 
 // Costume render function
 void playerSence(GLfloat xRot, GLfloat yRot, GLfloat xTrans, GLfloat yTrans, GLfloat zTrans);
 void DrawGround(void);
 void drawCross(void);
-void genBtn(float x, float y, char *st);
-void genSlider(float x, float y, float by, int name);
-void renderBtns();
-void renderSliders();
+
 void drawThetaBoard(float cx, float cy, float h, float w);
 void drawDispBoard(float cx, float cy, float h, float w);
+
+// Selection flags
+bool sliderClicked = false;
 
 // Click and Drag
 int startX = 0;
@@ -69,19 +66,14 @@ unsigned int pendVBO[2];
 int t = 16;
 int T = 0;
 
-// flags
-int sFlag = 0;
-
 // proj mode
 GLfloat oth[16];
 GLfloat pers[16];
 
-// invert pendulum
+// Menu
+Menu m;
 
-// Define btn names
-#define START		0
-#define RESTART		1
-#define SLIDER		2
+// invert pendulum
 
 // zooms
 GLfloat playerPos[3] = {0};
@@ -92,7 +84,7 @@ double Setpoint = 0, Input, Output;
 // Control loop gains
 float k[3] = { 50.0f, 5.0f, 0.1f };
 //Specify the links and initial tuning parameters
-PID myPID(&Input, &Output, &Setpoint, k[2], k[1], k[0], DIRECT, T);
+PID myPID(&Input, &Output, &Setpoint, k[0], k[1], k[2], DIRECT, T);
 
 // texture
 #define GROUND_TEXTURE  0
@@ -100,10 +92,6 @@ PID myPID(&Input, &Output, &Setpoint, k[2], k[1], k[0], DIRECT, T);
 #define NUM_TEXTURES    2
 GLuint  textureObjects[NUM_TEXTURES];
 const char *szTextureFiles[] = { "grass.tga", "cart.tga" };
-
-// sliding bar
-char* kst[] = { "Kd", "Ki", "Kp" };
-int sliding[4] = { 0 };
 
 // Light values and coordinates
 GLfloat  ambientLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -140,6 +128,9 @@ int main(int argc, char* argv[])
 	myPID.SetMode(AUTOMATIC);
 	myPID.SetControllerDirection(REVERSE);
 
+	// Initialize Menu
+	m = Menu(k[0], k[1], k[2]);
+
 	// Load stl files
 	cout << "////////// Åª¨úStlÀÉ... //////////\n\n";
 	cartTri = loadStl("cart_u.stl");
@@ -169,7 +160,6 @@ int main(int argc, char* argv[])
 
 		// Create the Menu
 		int nMainMenu;
-
 		nMainMenu = glutCreateMenu(ProcessMenu);
 		glutAddMenuEntry("Set system parameters", 1);
 		glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -178,7 +168,7 @@ int main(int argc, char* argv[])
 		glutSpecialFunc(SpecialKeys);
 		glutKeyboardFunc(KeyboardKeys);
 		glutMotionFunc(MouseMotion);
-		//glutPassiveMotionFunc(MouseMotion);
+		//glutPassiveMotionFunc(MouseMotion); // move when mouse buttons not pressed
 		glutMouseFunc(MouseKeys);
 		glutDisplayFunc(RenderScene);
 
@@ -206,7 +196,6 @@ void RenderScene(void)
 	// Clear the window and the depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
 	// change proj mode
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -215,20 +204,21 @@ void RenderScene(void)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	renderBtns();
-	renderSliders();
+	float w = viewW / 2.f - 50.f;
+	float h = viewH / 2.f - 20.f;
+	m.renderMenu(w, h);
 	drawCross();
 
 	char buf[50];
 	glColor3f(0.2f, 0.2f, 0.2f);
 	sprintf_s(buf, sizeof(buf), "Mass of Pendulumn = %.1f (kg)", massPendulum);
-	Sprint(-viewW / 2.f, viewH / 2.f - 80.f, buf);
+	Sprint((int)-viewW / 2.f, (int)viewH / 2.f - 80.f, buf);
 	sprintf_s(buf, sizeof(buf), "Mass of Cart = %.1f (kg)", massCart);
-	Sprint(-viewW / 2.f, viewH / 2.f - 100.f, buf);
+	Sprint((int)-viewW / 2.f, (int)viewH / 2.f - 100.f, buf);
 	sprintf_s(buf, sizeof(buf), "Length of Pendulumn = %.1f (m)", lengthArm);
-	Sprint(-viewW / 2.f, viewH / 2.f - 120.f, buf);
-	sprintf_s(buf, sizeof(buf), "Kp = %.1f, Ki = %.1f, Kd = %.1f", k[2], k[1], k[0]);
-	Sprint(-viewW / 2.f, viewH / 2.f - 140.f, buf);
+	Sprint((int)-viewW / 2.f, (int)viewH / 2.f - 120.f, buf);
+	sprintf_s(buf, sizeof(buf), "Kp = %.1f, Ki = %.1f, Kd = %.1f", k[0], k[1], k[2]);
+	Sprint((int)-viewW / 2.f, (int)viewH / 2.f - 140.f, buf);
 
 	// change proj mode
 	glMatrixMode(GL_PROJECTION);
@@ -301,8 +291,8 @@ void SetupRC()
 {
 	// Variable for texture setting
 	GLbyte *pBytes;
-	GLint iWidth, iHeight, iComponents;
-	GLenum eFormat;
+	//GLint iWidth, iHeight, iComponents;
+	//GLenum eFormat;
 
 	glEnable(GL_DEPTH_TEST);	// Hidden surface removal
 	glFrontFace(GL_CCW);		// Counter clock-wise polygons face out
@@ -430,11 +420,11 @@ void TimerFunction(int value)
 	// Redraw the scene with new coordinates
 	glutPostRedisplay();
 
-	if (sFlag && abs(theta) < angMax && abs(displacement*10) < posMax)	// If sFlag set and angular speed > 25, repeat this funciton.
+	if (m.isStarted() && abs(theta) < angMax && abs(displacement*10) < posMax)	// If sFlag set and angular speed > 25, repeat this funciton.
 		glutTimerFunc(t, TimerFunction, NULL);
 	else
 	{
-		sFlag = 0;
+		m.stop();
 		initializeMotionParams();
 		T = 0;
 		Output = 0;
@@ -530,41 +520,6 @@ void KeyboardKeys(unsigned char key, int x, int y)
 }
 
 ///////////////////////////////////////////////////////////
-// Present the information on which planet/sun was selected
-// and displayed
-void ProcessBtn(GLuint* buf)
-{
-	switch (buf[3])
-	{
-	case START: // Rotate the platform
-		if (sFlag == 0)
-		{
-			cout << "Kp = " << k[2] << ", Ki = " << k[1] << ", Kd = " << k[0] << endl;
-			sFlag = 1;
-			glutTimerFunc(t, TimerFunction, NULL);
-		}
-		break;
-
-	case RESTART: // Restart
-		sFlag = 0;
-		break;
-
-	case SLIDER:
-		if (sFlag == 0 && buf[0] > 1)
-		{
-			sliding[3] = 1;
-			sliding[buf[4]] = 1;
-		}
-		break;
-
-	default:
-		break;
-	}
-
-	glutPostRedisplay();
-}
-
-///////////////////////////////////////////////////////////
 // Process the selection, which is triggered by a right mouse
 // click at (xPos, yPos).
 #define BUFFER_LENGTH 64
@@ -574,7 +529,7 @@ void ProcessSelection(int xPos, int yPos)
 	static GLuint selectBuff[BUFFER_LENGTH];
 
 	// Hit counter and viewport storage
-	GLint hits, viewport[4];
+	GLint viewport[4];
 
 	// Setup selection buffer
 	glSelectBuffer(BUFFER_LENGTH, selectBuff);
@@ -589,21 +544,34 @@ void ProcessSelection(int xPos, int yPos)
 	// Change render mode
 	glRenderMode(GL_SELECT);
 	glLoadIdentity();
-	gluPickMatrix(xPos, viewport[3] - yPos, 1, 1, viewport);
+	gluPickMatrix(xPos, viewport[3] - yPos, 20, 20, viewport); // Select a small area to pick objects
 
 	glMultMatrixf(oth);
 
 	// Draw the scene
-	renderBtns();
-	renderSliders();
+	float w = viewW / 2.f - 50.f;
+	float h = viewH / 2.f - 20.f;
+	m.renderMenu(w, h);
 
 	// Collect the hits
-	hits = glRenderMode(GL_RENDER);
+	GLint hits = glRenderMode(GL_RENDER);
 
 	GLuint nErr = glGetError();
 	// If a single hit occurred, display the info.
-	if (hits == 1)
-		ProcessBtn(selectBuff);
+	sliderClicked = 0;
+	if (nErr == 0 && hits > 0) {
+		int selected = m.processBtn(selectBuff);
+		switch (selected) {
+		case START:
+			glutTimerFunc(t, TimerFunction, NULL);
+			break;
+		case SLIDER_P:
+		case SLIDER_I:
+		case SLIDER_D:
+			sliderClicked = 1;
+			break;
+		}
+	}
 
 	// Restore the projection matrix
 	glMatrixMode(GL_PROJECTION);
@@ -631,7 +599,7 @@ void MouseMotion(int x, int y)
 	float dx = (x - startX)  ;
 	float dy = (startY - y)  ;
 	
-	if (sliding[3] == 0)
+	if (!sliderClicked)
 	{
 		if (dx < 0)
 			yRot -= 1.0f;
@@ -656,20 +624,13 @@ void MouseMotion(int x, int y)
 
 		if (xRot < -1.0f)
 			xRot = 355.0f;
-	}	
+	}
+	else {
+		m.updateSliders(dy);
+	}
 
 	startX = x;
 	startY = y;
-
-	for (int i = 0; i < 3; i++)
-	{
-		if (sliding[i] == 1)
-		{
-			k[i] += 0.1*dy;
-			if (k[i] > 100.f) k[i] = 100.f;
-			else if (k[i] < 0.f) k[i] = 0.f;
-		}
-	}
 
 	// Refresh the Window
 	glutPostRedisplay();
@@ -687,14 +648,14 @@ void MouseKeys(int button, int state, int x, int y)
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP)
 	{
-		if ((sliding[0] + sliding[1] + sliding[2]) > 0)
+		if (sliderClicked)
 		{
-			myPID = PID(&Input, &Output, &Setpoint, k[2], k[1], k[0], DIRECT, T);
-			myPID.SetOutputLimits(-1000, 1000);
-			myPID.SetMode(AUTOMATIC);
-			myPID.SetControllerDirection(REVERSE);
+			k[0] = m.getKp();
+			k[1] = m.getKi();
+			k[2] = m.getKd();
+			myPID.SetTunings(k[0], k[1], k[2]);
 		}
-		memset(sliding, 0, sizeof(sliding)); 
+		sliderClicked = 0;
 	}
 }
 
@@ -741,85 +702,6 @@ void DrawGround(void)
 		s += texStep;
 	}
 	glDisable(GL_TEXTURE_2D);
-}
-
-// Generate Button
-void genBtn(float x, float y, char *st)
-{
-	int l = strlen(st);
-	float w = 50;
-	float h = 20;
-	glColor3f(0.5f, 0.5f, 0.5f); // Color
-	Sprint(x - ((float)l / 2.0f*8.0f), y - 8.0f, st);
-	glColor3f(1.0f, 1.0f, 1.0f); // Color
-	glRectf(x - w, y - h, x + w, y + h);
-	glLoadIdentity();
-}
-
-// Generate slide bar
-void genSlider(float x, float y, float by, int name)
-{
-	int l = strlen(kst[name]);
-	char kvs[10];
-	float bw = 10.f;
-	float bh = 5.f;
-	float sw = 2.5f;
-	float sh = 80.f;
-
-	sprintf_s(kvs, sizeof(kvs), "%.1f", k[name]);
-	int ll = strlen(kvs);
-
-	glLoadIdentity();
-	// text
-	glColor3f(0.9f, 0.9f, 0.9f); // Color
-	Sprint(x - ((float)l / 2.0f*8.0f), y - 100.0f, kst[name]);
-	Sprint(x - ((float)ll / 2.0f*8.0f), by + 10.0f, kvs);
-	// slider
-	glPushName(name);
-	glColor3f(0.8f, 0.8f, 0.8f); // Color
-	glRectf(x - bw, by - bh, x + bw, by + bh);
-	glPopName();
-	// bar
-	glColor3f(0.5f, 0.5f, 0.5f); // Color
-	glRectf(x - sw, y - sh, x + sw, y + sh);
-}
-
-// render menu
-void renderBtns()
-{
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	float w = viewW / 2.f - 50.f;
-	float h = viewH / 2.f - 20.f;
-
-	// Initialize the names stack
-	glInitNames();
-	glPushName(START);
-	genBtn(-w, h, "Start");
-
-	glLoadName(RESTART);
-	genBtn(-w + 120, h, "Restart");
-
-	glPopName();
-}
-
-// render sliding bars
-void renderSliders()
-{
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	float w = viewW / 2.f - 30.f;
-	float h = viewH / 2.f - 80.f;
-
-	glInitNames();
-	glPushName(SLIDER);
-	for (int i = 0; i < 3; i++)
-	{
-		genSlider(w - 30 * i, h, h + 160.f * ((k[i] - 50.f) / 100.f), i);
-	}
-	glPopName();
 }
 
 void drawCross()

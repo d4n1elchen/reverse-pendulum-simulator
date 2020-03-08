@@ -3,8 +3,6 @@
 #include "stdafx.h"
 #include "myGL.h"
 
-#include <iostream>
-
 using std::cout;
 using std::deque;
 
